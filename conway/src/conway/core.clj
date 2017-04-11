@@ -36,19 +36,16 @@
   (let [w (count board)
         h (count (first board))]
     (reduce
-      (fn [new-board x]
-        (reduce
-          (fn [new-board y]
-            (let [new-liveness
-                  (case (count-neighbors board [x y])
-                    2 (get-in board [x y])
-                    3 :on
-                    nil)]
-              (assoc-in new-board [x y] new-liveness)))
-          new-board
-          (range h)))
+      (fn [new-board [x y]]
+        (let [new-liveness
+              (case (count-neighbors board [x y])
+                2 (get-in board [x y])
+                3 :on
+                nil)]
+          (assoc-in new-board [x y] new-liveness))
+        )
       board
-      (range w))))
+      (for [x (range h) y (range w)] [x y]))))
 
 (defn -main
   [& args]
