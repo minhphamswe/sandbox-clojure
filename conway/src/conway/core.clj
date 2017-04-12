@@ -30,7 +30,7 @@
   [board loc]
   (count (filter #(get-in board %) (neighbors loc))))
 
-(defn indexed-step
+(defn step
   "Yield the next state of the board, using indices to determine neighbors."
   [board]
   (let [w (count board)
@@ -51,6 +51,6 @@
   [& args]
   (pprint glider)
   (->
-    (iterate indexed-step glider)
+    (iterate step glider)
     (nth 8)
     pprint))
