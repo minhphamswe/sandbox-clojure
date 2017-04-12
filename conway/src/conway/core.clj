@@ -19,33 +19,37 @@
   (populate (empty-board 6 6)
             #{[2 0] [2 1] [2 2] [1 2] [0 1]}))
 
-(defn neighbors
-  "Get the indices of the cells next to a cell."
-  [[x y]]
-  (for [dx [-1 0 1] dy [-1 0 1] :when (not= 0 dx dy)]
-    [(+ dx x) (+ dy y)]))
+(defn window
+  "Get a lazy sequence of 3-item windows centered around each item of coll."
+  ([coll]
+   (window nil coll))
+  ([pad coll]
+   (partition 3 1 (concat [pad] coll [pad]))))
 
-(defn count-neighbors
-  "Count number of neighbors to a cell that is not nil."
-  [board loc]
-  (count (filter #(get-in board %) (neighbors loc))))
+(defn cell-block
+  "Create sequence of 3x3 windows from triple of 3 sequences."
+  [[left mid right]]
+  (window (map vector left mid right)))
+
+(defn liveness
+  "Get the liveness (nil or :on) of the center cell for the next step."
+  [block]
+  (let [[_ [_ center _] _] block]
+    (case (- (count (filter #{:on} (apply concat block)))
+             (if (= :on center) 1 0))
+      2 center
+      3 :on
+      nil)))
+
+(defn- step-row
+  "Given three rows, yield the next state of the center row."
+  [rows-triple]
+  (vec (map liveness (cell-block rows-triple))))
 
 (defn step
-  "Yield the next state of the board, using indices to determine neighbors."
+  "Yield the next state of the board."
   [board]
-  (let [w (count board)
-        h (count (first board))]
-    (reduce
-      (fn [new-board [x y]]
-        (let [new-liveness
-              (case (count-neighbors board [x y])
-                2 (get-in board [x y])
-                3 :on
-                nil)]
-          (assoc-in new-board [x y] new-liveness))
-        )
-      board
-      (for [x (range h) y (range w)] [x y]))))
+  (vec (map step-row (window (repeat nil) board))))
 
 (defn -main
   [& args]
