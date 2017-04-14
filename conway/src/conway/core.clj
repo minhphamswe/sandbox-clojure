@@ -15,46 +15,35 @@
           board
           living-cells))
 
-(def glider
-  (populate (empty-board 6 6)
-            #{[2 0] [2 1] [2 2] [1 2] [0 1]}))
+(def glider #{[2 0] [2 1] [2 2] [1 2] [0 1]})
 
-(defn window
-  "Get a lazy sequence of 3-item windows centered around each item of coll."
-  ([coll]
-   (window nil coll))
-  ([pad coll]
-   (partition 3 1 (concat [pad] coll [pad]))))
+(defn neighbors
+  "Get the indices of the cells next to a cell."
+  [[x y]]
+  (for [dx [-1 0 1] dy [-1 0 1] :when (not= 0 dx dy)]
+    [(+ dx x) (+ dy y)]))
 
-(defn cell-block
-  "Create sequence of 3x3 windows from triple of 3 sequences."
-  [[left mid right]]
-  (window (map vector left mid right)))
-
-(defn liveness
-  "Get the liveness (nil or :on) of the center cell for the next step."
-  [block]
-  (let [[_ [_ center _] _] block]
-    (case (- (count (filter #{:on} (apply concat block)))
-             (if (= :on center) 1 0))
-      2 center
-      3 :on
-      nil)))
-
-(defn- step-row
-  "Given three rows, yield the next state of the center row."
-  [rows-triple]
-  (vec (map liveness (cell-block rows-triple))))
-
+;; The state of the world can be entirely represented by the set of living
+;; cells. Cells that are not living are implied dead. To generate each
+;; successive state, count how many living neighbors (n) each cell has.
+;; - n = 2 => same state
+;; - n = 3 => turn on
+;; - else  => turn off/die
 (defn step
-  "Yield the next state of the board."
-  [board]
-  (vec (map step-row (window (repeat nil) board))))
+  "Yied the next state of the world."
+  [cells]
+  (set (for [[loc n] (frequencies (mapcat neighbors cells))
+             :when (or (= n 3) (and (= n 2) (cells loc)))]
+         loc)))
 
 (defn -main
   [& args]
   (pprint glider)
-  (->
+
+  ;(pprint (populate (empty-board 6 6) (first (drop 8 (iterate step glider)))))
+  (->>
     (iterate step glider)
-    (nth 8)
+    (drop 8)
+    first
+    (populate (empty-board 6 6))
     pprint))
